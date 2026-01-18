@@ -1,7 +1,8 @@
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
-from datetime import date
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from datetime import date, timedelta
+
 
 class MovieShort(BaseModel):
     id: int
@@ -73,6 +74,15 @@ class MovieCreate(BaseModel):
     actors: list[str]
     languages: list[str]
 
+    @field_validator("date")
+    @classmethod
+    def validate_release_date(cls, v: date) -> date:
+        # Обчислюємо максимальну дозволену дату (сьогодні + 365 днів)
+        max_date = date.today() + timedelta(days=365)
+        if v > max_date:
+            raise ValueError("Invalid input data.")  # Використовуємо саме цей текст для помилки
+        return v
+
 class MovieUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=255)
     date: Optional[date] = None
@@ -81,3 +91,10 @@ class MovieUpdate(BaseModel):
     status: Optional[str] = None
     budget: Optional[float] = Field(None, ge=0)
     revenue: Optional[float] = Field(None, ge=0)
+
+    @field_validator("date")
+    @classmethod
+    def validate_update_date(cls, v: Optional[date]) -> Optional[date]:
+        if v and v > date.today() + timedelta(days=365):
+            raise ValueError("Invalid input data.")
+        return v
